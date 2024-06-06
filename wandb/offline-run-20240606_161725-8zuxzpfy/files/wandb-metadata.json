@@ -1,0 +1,39 @@
+{
+    "os": "macOS-11.7.10-x86_64-i386-64bit",
+    "python": "3.8.10",
+    "heartbeatAt": "2024-06-06T20:17:25.424957",
+    "startedAt": "2024-06-06T20:17:25.385333",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "autoencoder.py",
+    "codePathLocal": "autoencoder.py",
+    "codePath": "autoencoder.py",
+    "host": "Olivias-MBP-6.hsd1.nh.comcast.net",
+    "username": "oliviacava",
+    "executable": "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/bin/python",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 2000,
+        "min": 2000,
+        "max": 2000
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2000,
+            "min": 2000,
+            "max": 2000
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 931.546989440918,
+            "used": 14.284751892089844
+        }
+    },
+    "memory": {
+        "total": 16.0
+    }
+}

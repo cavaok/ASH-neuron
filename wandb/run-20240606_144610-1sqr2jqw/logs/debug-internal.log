@@ -1,0 +1,81 @@
+2024-06-06 14:46:10,609 INFO    StreamThr :13874 [internal.py:wandb_internal():85] W&B internal server running at pid: 13874, started at: 2024-06-06 14:46:10.607905
+2024-06-06 14:46:10,611 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: status
+2024-06-06 14:46:10,619 INFO    WriterThread:13874 [datastore.py:open_for_write():87] open: /Users/oliviacava/PycharmProjects/ASH-neuron/wandb/run-20240606_144610-1sqr2jqw/run-1sqr2jqw.wandb
+2024-06-06 14:46:10,619 DEBUG   SenderThread:13874 [sender.py:send():378] send: header
+2024-06-06 14:46:10,620 DEBUG   SenderThread:13874 [sender.py:send():378] send: run
+2024-06-06 14:46:13,913 INFO    SenderThread:13874 [retry.py:__call__():172] Retry attempt failed:
+Traceback (most recent call last):
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/util/connection.py", line 85, in create_connection
+    raise err
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/util/connection.py", line 73, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [Errno 61] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connectionpool.py", line 496, in _make_request
+    conn.request(
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connection.py", line 400, in request
+    self.endheaders()
+  File "/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/http/client.py", line 1247, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/http/client.py", line 1007, in _send_output
+    self.send(msg)
+  File "/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/http/client.py", line 947, in send
+    self.connect()
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connection.py", line 238, in connect
+    self.sock = self._new_conn()
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connection.py", line 213, in _new_conn
+    raise NewConnectionError(
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPConnection object at 0x111a9c910>: Failed to establish a new connection: [Errno 61] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/requests/adapters.py", line 667, in send
+    resp = conn.urlopen(
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /graphql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x111a9c910>: Failed to establish a new connection: [Errno 61] Connection refused'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/wandb/sdk/lib/retry.py", line 131, in __call__
+    result = self._call_fn(*args, **kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/wandb/sdk/internal/internal_api.py", line 340, in execute
+    return self.client.execute(*args, **kwargs)  # type: ignore
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 52, in execute
+    result = self._get_result(document, *args, **kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 60, in _get_result
+    return self.transport.execute(document, *args, **kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/wandb/sdk/lib/gql_request.py", line 58, in execute
+    request = self.session.post(self.url, **post_args)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/requests/sessions.py", line 637, in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "/Users/oliviacava/PycharmProjects/ASH-neuron/.venv/lib/python3.8/site-packages/requests/adapters.py", line 700, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /graphql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x111a9c910>: Failed to establish a new connection: [Errno 61] Connection refused'))
+2024-06-06 14:46:15,634 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:20,649 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:25,662 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:30,681 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:35,693 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:40,706 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:45,724 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:50,739 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:46:55,752 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: keepalive
+2024-06-06 14:47:00,223 DEBUG   HandlerThread:13874 [handler.py:handle_request():158] handle_request: shutdown
+2024-06-06 14:47:00,223 INFO    HandlerThread:13874 [handler.py:finish():882] shutting down handler
+2024-06-06 14:47:00,767 INFO    WriterThread:13874 [datastore.py:close():296] close: /Users/oliviacava/PycharmProjects/ASH-neuron/wandb/run-20240606_144610-1sqr2jqw/run-1sqr2jqw.wandb

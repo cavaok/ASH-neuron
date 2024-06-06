@@ -1,0 +1,25 @@
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Current SDK version is 0.17.0
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Configure stats pid to 14447
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Loading settings from /Users/oliviacava/.config/wandb/settings
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Loading settings from /Users/oliviacava/PycharmProjects/ASH-neuron/wandb/settings
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Loading settings from environment variables: {'mode': 'offline'}
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-06-06 15:41:03,940 INFO    MainThread:14447 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'autoencoder.py', 'program_abspath': '/Users/oliviacava/PycharmProjects/ASH-neuron/autoencoder.py', 'program': 'autoencoder.py'}
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:_log_setup():520] Logging user logs to /Users/oliviacava/PycharmProjects/ASH-neuron/wandb/offline-run-20240606_154103-e1zvx8i3/logs/debug.log
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:_log_setup():521] Logging internal logs to /Users/oliviacava/PycharmProjects/ASH-neuron/wandb/offline-run-20240606_154103-e1zvx8i3/logs/debug-internal.log
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:init():560] calling init triggers
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:init():567] wandb.init called with sweep_config: {}
+config: {'learning_rate': 0.0001, 'epochs': 300}
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:init():610] starting backend
+2024-06-06 15:41:03,941 INFO    MainThread:14447 [wandb_init.py:init():614] setting up manager
+2024-06-06 15:41:03,942 INFO    MainThread:14447 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=spawn,fork,forkserver, using: spawn
+2024-06-06 15:41:03,948 INFO    MainThread:14447 [wandb_init.py:init():622] backend started and connected
+2024-06-06 15:41:03,957 INFO    MainThread:14447 [wandb_init.py:init():711] updated telemetry
+2024-06-06 15:41:03,958 INFO    MainThread:14447 [wandb_init.py:init():744] communicating run to backend with 90.0 second timeout
+2024-06-06 15:41:03,963 INFO    MainThread:14447 [wandb_init.py:init():795] starting run threads in backend
+2024-06-06 15:41:04,105 INFO    MainThread:14447 [wandb_run.py:_console_start():2374] atexit reg
+2024-06-06 15:41:04,105 INFO    MainThread:14447 [wandb_run.py:_redirect():2229] redirect: wrap_raw
+2024-06-06 15:41:04,106 INFO    MainThread:14447 [wandb_run.py:_redirect():2294] Wrapping output streams.
+2024-06-06 15:41:04,106 INFO    MainThread:14447 [wandb_run.py:_redirect():2319] Redirects installed.
+2024-06-06 15:41:04,109 INFO    MainThread:14447 [wandb_init.py:init():838] run started, returning control to user process
+2024-06-06 15:42:00,033 WARNING MsgRouterThr:14447 [router.py:message_loop():77] message_loop has been closed
