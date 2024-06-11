@@ -2,6 +2,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from dataprep import load_and_preprocess_data
+import pandas as pd
+import matplotlib.pyplot as plt  # Import matplotlib for plotting
+
 
 # Loading and preprocessing the data
 X, y, X_safe, y_safe = load_and_preprocess_data('./exploratory_worms_complete.csv')
@@ -32,3 +35,17 @@ print(classification_report(y_test, y_pred))
 safe_predictions = rf_classifier.predict(X_safe)
 print("Safe Data Accuracy:", accuracy_score(y_safe, safe_predictions))
 print(classification_report(y_safe, safe_predictions))
+
+# Doing feature importance
+feature_importances = pd.DataFrame(rf_classifier.feature_importances_,
+                                   index = X_train.columns,
+                                   columns=['importance']).sort_values('importance', ascending=False)
+
+# Plotting feature importance
+plt.figure(figsize=(10, 8))
+feature_importances[:20].plot(kind='barh')
+plt.title('Top 20 Feature Importances')
+plt.xlabel('Importance')
+plt.ylabel('Features')
+plt.gca().invert_yaxis()  # most important at top of the plot
+plt.show()
