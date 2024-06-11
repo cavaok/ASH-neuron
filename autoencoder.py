@@ -84,10 +84,9 @@ for epoch in range(epochs):
         x_noisy = x_noisy.view(-1, 310)
         x_clean = x_clean.view(-1, 310)
 
-        reconstructed = model(x_noisy)
-
-        loss = loss_function(reconstructed, x_clean)
         optimizer.zero_grad()
+        reconstructed = model(x_noisy)
+        loss = loss_function(reconstructed, x_clean)
         loss.backward()
         optimizer.step()
 
