@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def load_and_preprocess_data(file_path, safe_data_fraction=0.1):
+def load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data_fraction=0.1):
     df = pd.read_csv(file_path)
     df.fillna(0, inplace=True)
 
@@ -14,6 +14,15 @@ def load_and_preprocess_data(file_path, safe_data_fraction=0.1):
     # Find the column names with maximum values for the remaining rows
     target = df.iloc[:, 300:311].idxmax(axis=1)
     df['target'] = target
+
+    # Undersampling glycerol rows (only if called to do so)
+    if undersample_glycerol:
+        glycerol_rows = df[df['target'] == '1Mglycerol'] # filters the rows with '1Mglycerol'
+        other_rows = df[df['target'] != '1Mglycerol']
+        # Takes a fraction of the glycerol rows
+        sampled_glycerol_rows = glycerol_rows.sample(frac=0.5, # change this to select desired undersampling rate
+                                                     random_state=42)
+        df = pd.concat([sampled_glycerol_rows, other_rows])
 
     # Setting the features and target
     X = df.iloc[:, :300]  # features
