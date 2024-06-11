@@ -1,6 +1,7 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
-
 def load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data_fraction=0.1):
     df = pd.read_csv(file_path)
     df.fillna(0, inplace=True)
@@ -15,6 +16,15 @@ def load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data_fr
     target = df.iloc[:, 300:311].idxmax(axis=1)
     df['target'] = target
 
+    # Plot initial target distribution
+    plt.figure(figsize=(10, 6))
+    sns.countplot(data=df, x='target', order=df['target'].value_counts().index)
+    plt.title('Distribution of Stimuli in Target Before Undersampling')
+    plt.xticks(rotation=45)
+    plt.ylabel('Count')
+    plt.xlabel('Stimuli')
+    plt.show()
+
     # Undersampling glycerol rows (only if called to do so)
     if undersample_glycerol:
         glycerol_rows = df[df['target'] == '1Mglycerol'] # filters the rows with '1Mglycerol'
@@ -23,6 +33,14 @@ def load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data_fr
         sampled_glycerol_rows = glycerol_rows.sample(frac=0.5, # change this to select desired undersampling rate
                                                      random_state=42)
         df = pd.concat([sampled_glycerol_rows, other_rows])
+        # Plot target distribution after undersampling
+        plt.figure(figsize=(10, 6))
+        sns.countplot(data=df, x='target', order=df['target'].value_counts().index)
+        plt.title('Distribution of Stimuli in Target After Undersampling')
+        plt.xticks(rotation=45)
+        plt.ylabel('Count')
+        plt.xlabel('Stimuli')
+        plt.show()
 
     # Setting the features and target
     X = df.iloc[:, :300]  # features
