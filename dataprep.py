@@ -17,13 +17,13 @@ def load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data_fr
     df['target'] = target
 
     # Plot initial target distribution
-    plt.figure(figsize=(10, 6))
-    sns.countplot(data=df, x='target', order=df['target'].value_counts().index)
-    plt.title('Distribution of Stimuli in Target Before Undersampling')
-    plt.xticks(rotation=45)
-    plt.ylabel('Count')
-    plt.xlabel('Stimuli')
-    plt.show()
+    #plt.figure(figsize=(10, 6))
+    #sns.countplot(data=df, x='target', order=df['target'].value_counts().index)
+    #plt.title('Distribution of Stimuli in Target Before Undersampling')
+    #plt.xticks(rotation=45)
+    #plt.ylabel('Count')
+    #plt.xlabel('Stimuli')
+    #plt.show()
 
     # Undersampling glycerol rows (only if called to do so)
     if undersample_glycerol:
