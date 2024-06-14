@@ -1,14 +1,14 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-from dataprep import load_and_preprocess_data
+from dataprep import rf_load_and_preprocess_data
 import pandas as pd #only needed for feature importance part
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
 # Loading and preprocessing the data
-X, y, X_safe, y_safe = load_and_preprocess_data('./exploratory_worms_complete.csv', True)
+X, y, X_safe, y_safe = rf_load_and_preprocess_data('./exploratory_worms_complete.csv', True)
 
 # Extracting class labels for later use in the confusion matrix
 class_labels = y.unique().tolist()
