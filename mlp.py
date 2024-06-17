@@ -1,114 +1,165 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-from sklearn.preprocessing import StandardScaler
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+# Some code structure and snippets from Sebastian Raschka @rasbt
+
 from dataprep import mlp_load_and_preprocess_data
+import torch
+from torch.utils.data import Dataset, DataLoader
+import time
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
-# Loading and preprocessing the data
-X_train, y_train, X_test, y_test, X_safe, y_safe = mlp_load_and_preprocess_data('./exploratory_worms_complete.csv')
 
-# Scaling the data
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-X_safe = scaler.transform(X_safe)
+class MlpSigmoidMSE(torch.nn.Module):
+    def __init__(self, num_features, num_hidden, num_classes):
+        super(MlpSigmoidMSE, self).__init__()
 
-# Function to convert any DataFrame or NumPy array to a PyTorch tensor (not sure if needed
-# to be set up like this but put this together while debugging...
-def convert_to_tensor(data, unsqueeze=False):
-    if isinstance(data, pd.DataFrame):
-        data = data.to_numpy()  # Convert DataFrame to NumPy array if necessary
-    tensor = torch.tensor(data, dtype=torch.float32)
-    if unsqueeze:
-        tensor = tensor.unsqueeze(1)  # Add dimension for PyTorch compatibility if required
-    return tensor
+        self.num_classes = num_classes
 
-# Converting and using the function
-X_train = convert_to_tensor(X_train)
-y_train = convert_to_tensor(y_train)
-X_test = convert_to_tensor(X_test)
-y_test = convert_to_tensor(y_test)
-X_safe = convert_to_tensor(X_safe)
-y_safe = convert_to_tensor(y_safe)
+        ### 1st hidden layer
+        self.linear_1 = torch.nn.Linear(num_features, num_hidden)
+        self.linear_1.weight.detach().normal_(0.0, 0.1)
+        self.linear_1.bias.detach().zero_()
 
-# Check shapes
-print("Shapes:", X_train.shape, y_train.shape, X_safe.shape, y_safe.shape)
-
-# Dataloaders (need to change batch size)
-train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
-test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=64, shuffle=False)
-safe_loader = DataLoader(TensorDataset(X_safe, y_safe), batch_size=64, shuffle=False)
-
-# MLP class
-class MLP(nn.Module):
-    def __init__(self, input_size, output_size):
-        super(MLP, self).__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_size, 50),
-            nn.ReLU(),
-            nn.Dropout(0.01),  # Optionally retain dropout as a form of regularization
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Dropout(0.01),
-            nn.Linear(50, output_size)
-        )
+        ### Output layer
+        self.linear_out = torch.nn.Linear(num_hidden, num_classes)
+        self.linear_out.weight.detach().normal_(0.0, 0.1)
+        self.linear_out.bias.detach().zero_()
 
     def forward(self, x):
-        return self.network(x)
+        out = self.linear_1(x)
+        out = torch.sigmoid(out)
+        logits = self.linear_out(out)
+        probas = torch.sigmoid(logits)
+        return logits, probas
 
 
-# Model, loss fcn, and optimizer
-model = MLP(input_size=X_train.shape[1], output_size=y_train.shape[1])
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.01)
-
-
-# Training the model
-epoch_losses = []
-num_epochs = 300
-for epoch in range(num_epochs):
-    total_loss = 0
-    count_batches = 0
-    for inputs, labels in train_loader:
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item()
-        count_batches += 1
-    average_loss = total_loss / count_batches
-    epoch_losses.append(average_loss)
-    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {average_loss:.4f}')
-
-
-# Evaluate the Model on Test and Safe Data using MSE
-def evaluate_model(data_loader):
-    model.eval()
-    total_loss = 0
-    total_samples = 0  # Keep track of the total number of samples
+def compute_mse(net, data_loader):
+    curr_mse, num_examples = torch.zeros(model.num_classes).float(), 0
     with torch.no_grad():
-        for inputs, labels in data_loader:
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            total_loss += loss.item() * inputs.size(0)  # Multiply loss by batch size
-            total_samples += inputs.size(0)
-    average_loss = total_loss / total_samples
-    return average_loss
+        for features, targets in data_loader:
+            features = features.view(-1, 300).to(DEVICE)
+            logits, probas = net.forward(features)
+            probas = probas.to(torch.device('cpu'))
+            loss = torch.sum((targets - probas)**2, dim=0)
+            num_examples += targets.size(0)
+            curr_mse += loss
 
-# Plotting the training loss
-plt.figure(figsize=(10, 5))
-plt.plot(epoch_losses, label='Training Loss')
-plt.title('Loss Over Epochs')
-plt.xlabel('Epochs')
-plt.ylabel('MSE Loss')
-plt.legend()
-plt.grid(True)
+        curr_mse = torch.mean(curr_mse/num_examples, dim=0)
+        return curr_mse
+
+def compute_accuracy(net, data_loader):
+    correct_pred, num_examples = 0, 0
+    with torch.no_grad():
+        for features, targets in data_loader:
+            features = features.view(-1, 300).to(DEVICE)
+            targets = targets.to(DEVICE)
+            logits, probas = net.forward(features)
+            predicted_labels = torch.argmax(probas, 1)
+            true_labels = torch.argmax(targets, 1)
+            num_examples += targets.size(0)
+            correct_pred += (predicted_labels == true_labels).sum()
+        return correct_pred.float() / num_examples * 100
+
+
+# Settings and device setup
+RANDOM_SEED = 1
+BATCH_SIZE = 255
+NUM_EPOCHS = 100
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+# Getting data all ready and prepped
+X_train, y_train, X_test, y_test, X_safe, y_safe = mlp_load_and_preprocess_data('./exploratory_worms_complete.csv')
+
+class TimeSeriesDataset(Dataset):
+    def __init__(self, features, targets):
+        self.features = features
+        self.targets = targets
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        X = torch.tensor(self.features[idx], dtype=torch.float32)
+        y = torch.tensor(self.targets[idx], dtype=torch.float32)
+        return X, y
+
+
+# Create dataset instances
+train_dataset = TimeSeriesDataset(X_train.values, y_train.values)
+test_dataset = TimeSeriesDataset(X_test.values, y_test.values)
+
+# Create dataloaders
+train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+# Model setup
+torch.manual_seed(RANDOM_SEED)
+model = MlpSigmoidMSE(num_features=300,
+                      num_hidden=100, # need to try different ones/experiment
+                      num_classes=10)
+
+# Loss function and optimizer
+model = model.to(DEVICE)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+# Training loop
+start_time = time.time()
+minibatch_cost = []
+epoch_cost = []
+train_acc = []
+test_acc = []
+
+for epoch in range(NUM_EPOCHS):
+    model.train()
+    for batch_idx, (features, targets) in enumerate(train_loader):
+
+        features = features.view(-1, 300).to(DEVICE)  # Adjusting to 300 features
+        targets = targets.to(DEVICE)  # Targets are already one-hot encoded
+
+        ### FORWARD AND BACK PROP
+        logits, probas = model(features)
+
+        cost = F.mse_loss(probas, targets)
+        optimizer.zero_grad()
+
+        cost.backward()
+        minibatch_cost.append(cost.item())
+        ### UPDATE MODEL PARAMETERS
+        optimizer.step()
+
+    cost = compute_mse(model, train_loader)
+    epoch_cost.append(cost.item())
+
+    train_accuracy = compute_accuracy(model, train_loader)
+    test_accuracy = compute_accuracy(model, test_loader)
+    train_acc.append(train_accuracy)
+    test_acc.append(test_accuracy)
+
+print('Total Training Time: %.2f min' % ((time.time() - start_time) / 60))
+
+# Compute final MSE on test set
+test_mse = compute_mse(model, test_loader)
+print(f'Test MSE: {test_mse:.4f}')
+
+# Compute final accuracy on training and test sets
+train_accuracy = compute_accuracy(model, train_loader)
+test_accuracy = compute_accuracy(model, test_loader)
+print(f'Training Accuracy: {train_accuracy:.2f}%')
+print(f'Test Accuracy: {test_accuracy:.2f}%')
+
+# Plotting the losses and accuracies with Matplotlib
+fig, ax1 = plt.subplots(figsize=(12, 8))
+
+ax1.plot(range(NUM_EPOCHS), epoch_cost, label='Epoch cost', color='blue', linewidth=2)
+ax1.set_xlabel('Epoch')
+ax1.set_ylabel('MSE Loss', color='blue')
+ax1.tick_params(axis='y', labelcolor='blue')
+
+ax2 = ax1.twinx()
+ax2.plot(range(NUM_EPOCHS), train_acc, label='Train Accuracy', color='green')
+ax2.plot(range(NUM_EPOCHS), test_acc, label='Test Accuracy', color='orange')
+ax2.set_ylabel('Accuracy (%)', color='green')
+ax2.tick_params(axis='y', labelcolor='green')
+
+fig.suptitle('Training Loss and Accuracy Over Time')
+fig.legend(loc='upper left', bbox_to_anchor=(0.1,0.9))
 plt.show()
-
-print("Test Data MSE:", evaluate_model(test_loader))
-print("Safe Data MSE:", evaluate_model(safe_loader))
