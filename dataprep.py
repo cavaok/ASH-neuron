@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+
 def mlp_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0.1):
     data = pd.read_csv(file_path)
     data.fillna(0, inplace=True)
@@ -8,7 +9,7 @@ def mlp_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0.
     mask_all_zeros = (data.iloc[:, 300:310].sum(axis=1) == 0)  # mask rows with all zeros in columns 300 to 310
     data = data[~mask_all_zeros]
     X = data.iloc[:, :300]  # features
-    y = data.iloc[:, 300:311] # predictors
+    y = data.iloc[:, 300:310] # predictors
 
     # Training and safe data split
     X_train, X_safe, y_train, y_safe = train_test_split(X, y, test_size=safe_data_fraction, random_state=42)
@@ -50,6 +51,7 @@ def rf_load_and_preprocess_data(file_path, undersample_glycerol=False, safe_data
     X_train, X_safe, y_train, y_safe = train_test_split(X, y, test_size=safe_data_fraction, random_state=42)
 
     return X_train, y_train, X_safe, y_safe
+
 
 def autoencoder_dataprep(file_path):
     data = pd.read_csv(file_path)
