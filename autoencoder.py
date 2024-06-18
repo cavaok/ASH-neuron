@@ -2,16 +2,18 @@ import torch
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
-from dataprep import autoencoder_dataprep
-import wandb
-from accuracy import wasserstein_accuracy
-
-# Note: data and noisy_data have shape (355, 310)
+from dataprep import autoencoder_dataprep4
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 # Data loading and prep
-data, noisy_data = autoencoder_dataprep('./exploratory_worms_complete.csv')
+data, noisy_data, safe_data, noisy_safe_data = autoencoder_dataprep4('./exploratory_worms_complete.csv',
+                                                                     undersample_glycerol=True,
+                                                                     noisy_features=False,
+                                                                     crazy_noisy_features=True)
+stimuli_names = data.columns[300:304]
 
-# Class for denoising the dataset - - - - - - - - - - - - - - - - - - - - - - - - -
+
 class DenoisingDataset(Dataset):
     def __init__(self, clean_data, noisy_data):
         self.clean_data = clean_data
@@ -25,74 +27,95 @@ class DenoisingDataset(Dataset):
         x_clean = self.clean_data.iloc[idx].values.astype('float32')
         return torch.tensor(x_noisy), torch.tensor(x_clean)
 
-dataset = DenoisingDataset(clean_data=data, noisy_data=noisy_data) # creates dataset
-loader = DataLoader(dataset, batch_size=355, shuffle=True) # creates loader for training
 
-# Class for the autoencoder - - - - - - - - - - - - - - - - - - - - - - - - - -
 class AE(torch.nn.Module):
     def __init__(self):
         super().__init__()
-
-        # Encoder
         self.encoder = torch.nn.Sequential(
-            torch.nn.Linear(310, 250),
-            torch.nn.ELU(),
-            torch.nn.Linear(250, 200),
-            torch.nn.ELU(),
-            torch.nn.Linear(200, 100),
-            torch.nn.ELU(),
-            torch.nn.Linear(100, 30),
-            torch.nn.ELU(),
-        )
-
-        # Decoder
+            torch.nn.Linear(304, 200), torch.nn.ELU(),
+            torch.nn.Linear(200, 100), torch.nn.ELU(),
+            torch.nn.Linear(100, 50), torch.nn.ELU(),
+            torch.nn.Linear(50, 10), torch.nn.ELU())
         self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(30, 100),
-            torch.nn.ELU(),
-            torch.nn.Linear(100, 200),
-            torch.nn.ELU(),
-            torch.nn.Linear(200, 250),
-            torch.nn.ELU(),
-            torch.nn.Linear(250, 310)
-        )
+            torch.nn.Linear(10, 50), torch.nn.ELU(),
+            torch.nn.Linear(50, 100), torch.nn.ELU(),
+            torch.nn.Linear(100, 200), torch.nn.ELU(),
+            torch.nn.Linear(200, 304))
 
-    # Stepper
     def forward(self, x):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
 
-# Running the model - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-learn_rate = 1e-3 # setting learn rate
-epochs = 300 # setting epochs
-outputs = []
-losses = []
-model = AE() # initializes the model
-loss_function = torch.nn.MSELoss() # initialize the loss function
-optimizer = torch.optim.RMSprop(model.parameters(), lr=learn_rate)
 
-run = wandb.init(
-    project="ASH-neuron",
-    config={
-        "learning_rate": learn_rate,
-        "epochs": epochs,
-    },
-)
-
-for epoch in range(epochs):
-    for (x_noisy, x_clean) in loader:
-        x_noisy = x_noisy.view(-1, 310)
-        x_clean = x_clean.view(-1, 310)
-
-        optimizer.zero_grad()
-        reconstructed = model(x_noisy)
-        loss = loss_function(reconstructed, x_clean)
-        loss.backward()
-        optimizer.step()
-
-        # Storing the losses in a list for plotting
-        losses.append(loss.item())
-        acc = wasserstein_accuracy(x_clean, reconstructed)
-        wandb.log({"accuracy": acc, "loss": loss})
+def train_autoencoder(loader, model, epochs):
+    learn_rate = 1e-4
+    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+    loss_function = torch.nn.MSELoss()
+    losses = []
+    for epoch in range(epochs):
+        for (x_noisy, x_clean) in loader:
+            x_noisy = x_noisy.view(-1, 304)
+            x_clean = x_clean.view(-1, 304)
+            optimizer.zero_grad()
+            reconstructed = model(x_noisy)
+            loss = loss_function(reconstructed, x_clean)
+            loss.backward()
+            optimizer.step()
+            losses.append(loss.item())
+    return losses
 
 
+def test_autoencoder(loader, model):
+    predicted_labels = []
+    actual_labels = []
+    with torch.no_grad():
+        for x_noisy, x_clean in loader:
+            x_noisy = x_noisy.view(-1, 304)
+            reconstructed = model(x_noisy)
+            predicted_indices = torch.argmax(reconstructed[:, 300:304], dim=1)
+            actual_indices = torch.argmax(x_clean[:, 300:304], dim=1)
+            predicted_labels.extend(stimuli_names[predicted_indices])
+            actual_labels.extend(stimuli_names[actual_indices])
+    accuracy = sum(1 for x, y in zip(predicted_labels, actual_labels) if x == y) / len(predicted_labels)
+    cm = confusion_matrix(actual_labels, predicted_labels, labels=stimuli_names)
+    print(f"Accuracy: {accuracy * 100:.2f}%")
+    plot_confusion_matrix(cm, stimuli_names)
+    return accuracy
+
+
+def plot_confusion_matrix(cm, labels):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
+    plt.xlabel("Predicted Labels")
+    plt.ylabel("True Labels")
+    plt.title("Confusion Matrix")
+    plt.show()
+
+
+def plot_loss(losses):
+    plt.figure(figsize=(10, 6))
+    plt.plot(losses, label='MSE Loss')
+    plt.title('MSE Loss Over Time')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+
+# Usage
+dataset = DenoisingDataset(data, noisy_data)
+safe_dataset = DenoisingDataset(safe_data, noisy_data)
+
+loader = DataLoader(dataset, batch_size=len(data), shuffle=True)
+safe_loader = DataLoader(safe_dataset, batch_size=len(data), shuffle=True)
+
+model = AE()
+
+losses = train_autoencoder(loader, model, 1000)
+plot_loss(losses)
+accuracy = test_autoencoder(loader, model)
+
+safe_dataset = DenoisingDataset(safe_data, noisy_safe_data)
+safe_loader = DataLoader(safe_dataset, batch_size=len(safe_data), shuffle=False)
+safe_accuracy = test_autoencoder(safe_loader, model)
