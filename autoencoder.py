@@ -9,11 +9,12 @@ import seaborn as sns
 # Data loading and prep
 data, noisy_data, safe_data, noisy_safe_data = autoencoder_dataprep4('./exploratory_worms_complete.csv',
                                                                      undersample_glycerol=True,
-                                                                     noisy_features=False,
-                                                                     crazy_noisy_features=True)
+                                                                     noisy_features=False, # zero out 0-5.9 and 7-29.9
+                                                                     crazy_noisy_features=True) # zero out 6-6.9
+# For the confusion matrix
 stimuli_names = data.columns[300:304]
 
-
+# Dataset class
 class DenoisingDataset(Dataset):
     def __init__(self, clean_data, noisy_data):
         self.clean_data = clean_data
@@ -27,7 +28,7 @@ class DenoisingDataset(Dataset):
         x_clean = self.clean_data.iloc[idx].values.astype('float32')
         return torch.tensor(x_noisy), torch.tensor(x_clean)
 
-
+# Autoencoder class
 class AE(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -47,7 +48,7 @@ class AE(torch.nn.Module):
         decoded = self.decoder(encoded)
         return decoded
 
-
+# Trains the autoencoder function
 def train_autoencoder(loader, model, epochs):
     learn_rate = 1e-4
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -65,7 +66,7 @@ def train_autoencoder(loader, model, epochs):
             losses.append(loss.item())
     return losses
 
-
+# Function to test autoencoder
 def test_autoencoder(loader, model):
     predicted_labels = []
     actual_labels = []
@@ -83,7 +84,7 @@ def test_autoencoder(loader, model):
     plot_confusion_matrix(cm, stimuli_names)
     return accuracy
 
-
+# Function to plot confusion matrix
 def plot_confusion_matrix(cm, labels):
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
@@ -92,7 +93,7 @@ def plot_confusion_matrix(cm, labels):
     plt.title("Confusion Matrix")
     plt.show()
 
-
+# Function to plot loss
 def plot_loss(losses):
     plt.figure(figsize=(10, 6))
     plt.plot(losses, label='MSE Loss')
@@ -104,14 +105,17 @@ def plot_loss(losses):
 
 
 # Usage
+
 dataset = DenoisingDataset(data, noisy_data)
 safe_dataset = DenoisingDataset(safe_data, noisy_data)
 
+# Dataloaders
 loader = DataLoader(dataset, batch_size=len(data), shuffle=True)
 safe_loader = DataLoader(safe_dataset, batch_size=len(data), shuffle=True)
 
-model = AE()
+model = AE() # initiating the model
 
+# Loss and accuracy
 losses = train_autoencoder(loader, model, 1000)
 plot_loss(losses)
 accuracy = test_autoencoder(loader, model)
