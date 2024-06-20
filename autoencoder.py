@@ -143,7 +143,7 @@ safe_dataset = DenoisingDataset(safe_data, noisy_data)
 loader = DataLoader(dataset, batch_size=len(data), shuffle=True)
 safe_loader = DataLoader(safe_dataset, batch_size=len(data), shuffle=True)
 
-model = AE() # initiating the model
+model = AE() # initializing the model
 
 # Training Loss
 losses = train_autoencoder(loader, model, epochs, learn_rate)
