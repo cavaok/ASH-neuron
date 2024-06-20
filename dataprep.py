@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 ## Function for mlp that only looks at the first 4 stimuli - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def mlp4_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0.1, undersample_glycerol = False):
+def mlp4_load_and_preprocess_data(file_path, test_size=0.2, undersample_glycerol = False):
     data = pd.read_csv(file_path)
     data.fillna(0, inplace=True)
     data = data.iloc[:, :-13]  # drops the last 13 columns
@@ -19,14 +19,13 @@ def mlp4_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0
     X = data.iloc[:, :300]  # features
     y = data.iloc[:, 300:304]  # predictors
     # Training and safe data split
-    X_train, X_safe, y_train, y_safe = train_test_split(X, y, test_size=safe_data_fraction, random_state=42)
-    # Train test split on previous training
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=test_size, random_state=42)
-    return X_train, y_train, X_test, y_test, X_safe, y_safe
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+
+    return X_train, y_train, X_test, y_test
 
 
 ## Function for mlp that looks at the first 10 stimuli - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def mlp_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0.1, undersample_glycerol = False):
+def mlp_load_and_preprocess_data(file_path, test_size=0.2, undersample_glycerol = False):
     data = pd.read_csv(file_path)
     data.fillna(0, inplace=True)
     data = data.iloc[:, :-13]  # drops the last 13 columns
@@ -42,10 +41,8 @@ def mlp_load_and_preprocess_data(file_path, test_size=0.2, safe_data_fraction=0.
     X = data.iloc[:, :300]  # features
     y = data.iloc[:, 300:310] # predictors
     # Training and safe data split
-    X_train, X_safe, y_train, y_safe = train_test_split(X, y, test_size=safe_data_fraction, random_state=42)
-    # Train test split on previous training
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=test_size, random_state=42)
-    return X_train, y_train, X_test, y_test, X_safe, y_safe
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    return X_train, y_train, X_test, y_test
 
 
 ## Function for the random forest that looks at first 10 stimuli - - - - - - - - - - - - - - - - - - - - - - - - - - - -
