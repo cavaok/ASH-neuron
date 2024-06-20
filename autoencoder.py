@@ -1,3 +1,6 @@
+import wandb
+wandb.login()
+
 import torch
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
@@ -5,14 +8,9 @@ import matplotlib.pyplot as plt
 from dataprep import autoencoder_dataprep4
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+import numpy as np
+from torch import nn
 
-# Data loading and prep
-data, noisy_data, safe_data, noisy_safe_data = autoencoder_dataprep4('./exploratory_worms_complete.csv',
-                                                                     undersample_glycerol=True,
-                                                                     noisy_features=False, # zero out 0-5.9 and 7-29.9
-                                                                     crazy_noisy_features=True) # zero out 6-6.9
-# For the confusion matrix
-stimuli_names = data.columns[300:304]
 
 # Dataset class
 class DenoisingDataset(Dataset):
@@ -36,7 +34,7 @@ class AE(torch.nn.Module):
             torch.nn.Linear(304, 200), torch.nn.ELU(),
             torch.nn.Linear(200, 100), torch.nn.ELU(),
             torch.nn.Linear(100, 50), torch.nn.ELU(),
-            torch.nn.Linear(50, 10), torch.nn.ELU())
+            torch.nn.Linear(50, 10), torch.nn.ELU()) # 10 might be too adventurous
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(10, 50), torch.nn.ELU(),
             torch.nn.Linear(50, 100), torch.nn.ELU(),
@@ -49,12 +47,13 @@ class AE(torch.nn.Module):
         return decoded
 
 # Trains the autoencoder function
-def train_autoencoder(loader, model, epochs):
-    learn_rate = 1e-4
+def train_autoencoder(loader, model, epochs, learn_rate, ):
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    loss_function = torch.nn.MSELoss()
-    losses = []
+    loss_function = nn.MSELoss()
+    epoch_losses = []  # List to store average loss per epoch
+
     for epoch in range(epochs):
+        batch_losses = []  # List to store losses for each batch
         for (x_noisy, x_clean) in loader:
             x_noisy = x_noisy.view(-1, 304)
             x_clean = x_clean.view(-1, 304)
@@ -63,26 +62,46 @@ def train_autoencoder(loader, model, epochs):
             loss = loss_function(reconstructed, x_clean)
             loss.backward()
             optimizer.step()
-            losses.append(loss.item())
-    return losses
+            batch_losses.append(loss.item())
+
+        # Calculate and log the average loss of the epoch
+        average_loss = sum(batch_losses) / len(batch_losses)
+        wandb.log({"epoch": epoch + 1, "loss": average_loss})
+        epoch_losses.append(average_loss)  # Append average loss of the epoch to the list
+
+    print(f"Training complete. Final average loss: {average_loss:.4f}")
+    return epoch_losses  # Return list of average losses per epoch
 
 # Function to test autoencoder
-def test_autoencoder(loader, model):
-    predicted_labels = []
-    actual_labels = []
+def test_autoencoder(loader, model, dataset_name):
+    predicted_indices = []
+    actual_indices = []
     with torch.no_grad():
         for x_noisy, x_clean in loader:
             x_noisy = x_noisy.view(-1, 304)
+            x_clean = x_clean.view(-1, 304)
             reconstructed = model(x_noisy)
-            predicted_indices = torch.argmax(reconstructed[:, 300:304], dim=1)
-            actual_indices = torch.argmax(x_clean[:, 300:304], dim=1)
-            predicted_labels.extend(stimuli_names[predicted_indices])
-            actual_labels.extend(stimuli_names[actual_indices])
-    accuracy = sum(1 for x, y in zip(predicted_labels, actual_labels) if x == y) / len(predicted_labels)
-    cm = confusion_matrix(actual_labels, predicted_labels, labels=stimuli_names)
-    print(f"Accuracy: {accuracy * 100:.2f}%")
-    plot_confusion_matrix(cm, stimuli_names)
+            preds = torch.argmax(reconstructed[:, 300:304], dim=1)
+            actuals = torch.argmax(x_clean[:, 300:304], dim=1)
+
+            predicted_indices.extend(preds.cpu().numpy())
+            actual_indices.extend(actuals.cpu().numpy())
+
+    accuracy = np.mean(np.array(predicted_indices) == np.array(actual_indices))
+
+    # Log the confusion matrix and accuracy to wandb with a label
+    wandb.log({
+        f"{dataset_name}_confusion_matrix": wandb.plot.confusion_matrix(
+            probs=None,
+            y_true=actual_indices,
+            preds=predicted_indices,
+            class_names=stimuli_names
+        ),
+        f"{dataset_name}_accuracy": accuracy
+    })
+    print(f"Accuracy for {dataset_name}: {accuracy * 100:.2f}%")
     return accuracy
+
 
 # Function to plot confusion matrix
 def plot_confusion_matrix(cm, labels):
@@ -93,19 +112,30 @@ def plot_confusion_matrix(cm, labels):
     plt.title("Confusion Matrix")
     plt.show()
 
-# Function to plot loss
-def plot_loss(losses):
-    plt.figure(figsize=(10, 6))
-    plt.plot(losses, label='MSE Loss')
-    plt.title('MSE Loss Over Time')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
+# Data loading and prep
+data, noisy_data, safe_data, noisy_safe_data = autoencoder_dataprep4('./exploratory_worms_complete.csv',
+                                                                     apply_undersample_glycerol=True,
+                                                                     apply_noisy_features=True, # zero out 0-5.9 and 7-29.9
+                                                                     apply_crazy_noisy_features=False) # zero out 6-6.9
+# For the confusion matrix
+stimuli_names = data.columns[300:304]
 
+# Set epochs and learn rate
+learn_rate = 1e-4
+epochs = 1000
+
+# Wandb run
+run = wandb.init(
+    # Set the project where this run will be logged
+    project="ash_neuron-autoencoder",
+    # Track hyperparameters and run metadata
+    config={
+        "learning_rate": learn_rate,
+        "epochs": epochs,
+    },
+)
 
 # Usage
-
 dataset = DenoisingDataset(data, noisy_data)
 safe_dataset = DenoisingDataset(safe_data, noisy_data)
 
@@ -115,11 +145,11 @@ safe_loader = DataLoader(safe_dataset, batch_size=len(data), shuffle=True)
 
 model = AE() # initiating the model
 
-# Loss and accuracy
-losses = train_autoencoder(loader, model, 1000)
-plot_loss(losses)
-accuracy = test_autoencoder(loader, model)
+# Training Loss
+losses = train_autoencoder(loader, model, epochs, learn_rate)
 
-safe_dataset = DenoisingDataset(safe_data, noisy_safe_data)
-safe_loader = DataLoader(safe_dataset, batch_size=len(safe_data), shuffle=False)
-safe_accuracy = test_autoencoder(safe_loader, model)
+# Accuracy
+accuracy = test_autoencoder(loader, model, "train")
+safe_accuracy = test_autoencoder(safe_loader, model, "test")
+
+wandb.finish()
