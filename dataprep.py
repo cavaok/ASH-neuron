@@ -86,60 +86,61 @@ def autoencoder_dataprep(file_path):
     noisy_data.iloc[:, 300:310] = 0.1 # makes the noise all values equal to 0.1
     return data, noisy_data
 
-### THIS ONE IS MESSY OOPS :/
 ## Function for the autoencoder that only looks at first 10 stimuli - - - - - - - - - - - - - - - - - - - - - - - - - -
-def autoencoder_dataprep4(file_path, undersample_glycerol=False, noisy_features=False, crazy_noisy_features=False):
+def autoencoder_dataprep4(file_path, apply_undersample_glycerol=False, apply_noisy_features=False, apply_crazy_noisy_features=False):
     data = pd.read_csv(file_path)
     data.fillna(0, inplace=True)
-    data = data.iloc[:,:-19] # drops the last 19 columns
-    mask_all_zeros = (data.iloc[:, 300:304].sum(axis=1) == 0) # mask rows with all zeros in columns 300 to 304
+    data = data.iloc[:,:-19]  # drops the last 19 columns
+    mask_all_zeros = (data.iloc[:, 300:304].sum(axis=1) == 0)
     data = data[~mask_all_zeros]
-    if undersample_glycerol:
+
+    if apply_undersample_glycerol:
         glycerol_rows = data[data['1Mglycerol'] == 1]
         other_rows = data[data['1Mglycerol'] == 0]
         sampled_glycerol_rows = glycerol_rows.sample(frac=0.5, random_state=42)
         data = pd.concat([sampled_glycerol_rows, other_rows])
         data = data.sample(frac=1, random_state=42).reset_index(drop=True)
-    # Split the data into training and testing sets
+
     train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
-    # Create noisy data for training
+
     noisy_train_data = train_data.copy()
-    noisy_train_data.iloc[:, 300:304] = 0.25  # noise in one-hot encoded columns
-    if noisy_features: # noise in features
-        columns_to_zero_out = []
-        for x in range(30):
-            if x < 6 or x > 6:
-                if x in noisy_train_data.columns:
-                    columns_to_zero_out.append(str(x))
-                columns_to_zero_out.append(f"{x}.0")
-                columns_to_zero_out.extend([f"{x}.{y}" for y in range(1, 10)])
-        # Ensure only existing columns are zeroed out
-        columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_train_data.columns]
-        noisy_train_data[columns_to_zero_out] = 0
-    if crazy_noisy_features: # zero out only columns from 6 to 6.9
-        columns_to_zero_out = [f"{6}.{i}" for i in range(10)] # this part feels weird
-        if '6' in noisy_train_data.columns:
-            columns_to_zero_out.append('6')
-        columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_train_data.columns]
-        noisy_train_data[columns_to_zero_out] = 0
-    print(noisy_train_data)
+    noisy_train_data.iloc[:, 300:304] = 0.25
+
+    if apply_noisy_features:
+        noisy_train_data = noisy_features(noisy_train_data)
+    if apply_crazy_noisy_features:
+        noisy_train_data = crazy_noisy_features(noisy_train_data)
+
     noisy_test_data = test_data.copy()
     noisy_test_data.iloc[:, 300:304] = 0.25
-    if noisy_features:
-        columns_to_zero_out = []
-        for x in range(30):
-            if x < 6 or x > 6:
-                if x in noisy_test_data.columns:
-                    columns_to_zero_out.append(str(x))
-                columns_to_zero_out.append(f"{x}.0")
-                columns_to_zero_out.extend([f"{x}.{y}" for y in range(1, 10)])
-        columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_test_data.columns]
-        noisy_test_data[columns_to_zero_out] = 0
-    if crazy_noisy_features:
-        columns_to_zero_out = [f"{6}.{i}" for i in range(10)]
-        if '6' in noisy_test_data.columns:
-            columns_to_zero_out.append('6')
-        columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_test_data.columns]
-        noisy_test_data[columns_to_zero_out] = 0
-    print(noisy_test_data)
+    if apply_noisy_features:
+        noisy_test_data = noisy_features(noisy_test_data)
+    if apply_crazy_noisy_features:
+        noisy_test_data = crazy_noisy_features(noisy_test_data)
+
     return train_data, noisy_train_data, test_data, noisy_test_data
+
+# Function to zero out everything except for 6-6.9
+def noisy_features(noisy_data):
+    columns_to_zero_out = []
+    for x in range(30):
+        if x < 6 or x > 6:
+            if x in noisy_data.columns:
+                columns_to_zero_out.append(str(x))
+            columns_to_zero_out.append(f"{x}.0")
+            columns_to_zero_out.extend([f"{x}.{y}" for y in range(1, 10)])
+    columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_data.columns]
+    noisy_data[columns_to_zero_out] = 0
+    return noisy_data
+
+# Function to zero out only 6-6.9
+def crazy_noisy_features(noisy_data):
+    columns_to_zero_out = [f"{6}.{i}" for i in range(10)]
+    if '6' in noisy_data.columns:
+        columns_to_zero_out.append('6')
+    columns_to_zero_out = [col for col in columns_to_zero_out if col in noisy_data.columns]
+    noisy_data[columns_to_zero_out] = 0
+    return noisy_data
+
+
+
