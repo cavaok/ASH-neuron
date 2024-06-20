@@ -115,8 +115,8 @@ def plot_confusion_matrix(cm, labels):
 # Data loading and prep
 data, noisy_data, safe_data, noisy_safe_data = autoencoder_dataprep4('./exploratory_worms_complete.csv',
                                                                      apply_undersample_glycerol=True,
-                                                                     apply_noisy_features=True, # zero out 0-5.9 and 7-29.9
-                                                                     apply_crazy_noisy_features=False) # zero out 6-6.9
+                                                                     apply_noisy_features=False, # zero out 0-5.9 and 7-29.9
+                                                                     apply_crazy_noisy_features=True) # zero out 6-6.9
 # For the confusion matrix
 stimuli_names = data.columns[300:304]
 
