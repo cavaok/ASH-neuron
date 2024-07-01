@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 ## Function for mlp that only looks at the first 4 stimuli - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def mlp4_load_and_preprocess_data(file_path, test_size=0.2, undersample_glycerol = False):
+def mlp4_load_and_preprocess_data(file_path, test_size=0.2, undersample_glycerol = False, random_state=None):
     data = pd.read_csv(file_path)
     data.fillna(0, inplace=True)
     data = data.iloc[:, :-13]  # drops the last 13 columns
